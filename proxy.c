@@ -38,8 +38,10 @@ void  proxy_accept_cb (evutil_socket_t fd, short ev, void *arg)
     return;
   }
 
+  Client->flag_close = 0;
   Client->base = base;
   //----------------------------------------------------------------------
+  /* Random server choosing */
   int srv_id = (rand () % server_conf.remote_servers_count);
   //----------------------------------------------------------------------
   struct sockaddr_in  SockAddr = {0};
@@ -48,7 +50,7 @@ void  proxy_accept_cb (evutil_socket_t fd, short ev, void *arg)
   SockAddr.sin_addr.s_addr = inet_addr (server_conf.remote_servers[srv_id].ip);
 
   Client->server = bufferevent_socket_new (base, -1, BEV_OPT_CLOSE_ON_FREE);
-  bufferevent_setcb (Client->server, proxy_read_cb, NULL, proxy_error_cb, NULL);
+  bufferevent_setcb (Client->server, proxy_read_cb, NULL, proxy_error_cb, Client);
   //----------------------------------------------------------------------
   /*  Аргументы аналогичны аргументам стандартного системного вызова connect().
    *  Если до этого в bufferevent сокет не был определён, то вызов создаст новый
@@ -57,7 +59,9 @@ void  proxy_accept_cb (evutil_socket_t fd, short ev, void *arg)
    */
   if ( 0 > bufferevent_socket_connect (Client->server, (struct sockaddr*) &SockAddr, sizeof (SockAddr)) )
   {
-    fprintf (stderr, "%s\n", strerror (errno));
+    // fprintf (stderr, "%s\n", strerror (errno));
+    fprintf (stderr, "Error while connecting to server: '%s'\n",
+             evutil_socket_error_to_string (EVUTIL_SOCKET_ERROR ()));
 
     /* Попытка установить соединение неудачна */
     bufferevent_free (Client->server);
@@ -80,9 +84,11 @@ void  proxy_accept_cb (evutil_socket_t fd, short ev, void *arg)
   Client->b_ev = bufferevent_socket_new (base, SlaveSocket, BEV_OPT_CLOSE_ON_FREE);
   bufferevent_setcb  (Client->b_ev, proxy_read_cb, NULL , proxy_error_cb, Client);
   /* Ready to get data */
-  bufferevent_enable (Client->b_ev, EV_READ | EV_WRITE | EV_PERSIST);
+  bufferevent_enable (Client->b_ev,   EV_READ | EV_WRITE | EV_PERSIST);
+  bufferevent_enable (Client->server, EV_READ | EV_WRITE | EV_PERSIST);
   //----------------------------------------------------------------------
-  bufferevent_setwatermark (Client->b_ev, EV_WRITE, SRV_BUF_LOWMARK, 0);
+  bufferevent_setwatermark (Client->b_ev,   EV_WRITE, SRV_BUF_LOWMARK, 0);
+  bufferevent_setwatermark (Client->server, EV_WRITE, SRV_BUF_LOWMARK, 0);
 }
 //-----------------------------------------
 void  proxy_error_cb (struct bufferevent *b_ev, short events, void *arg)
@@ -119,6 +125,19 @@ void  proxy_error_cb (struct bufferevent *b_ev, short events, void *arg)
 #ifdef _DEBUG
     printf ("Got a close. Length = %u\n", evbuffer_get_length (buf_out) );
 #endif // _DEBUG
+
+    ++Client->flag_close;
+    if ( Client->flag_close > 1 )
+    {
+      bufferevent_free (Client->server);
+      bufferevent_free (Client->b_ev);
+
+#ifdef _DEBUG
+      printf ("connection closed");
+#endif // _DEBUG
+
+      free (Client);
+    }
   }
   else if ( events & BEV_EVENT_ERROR     ) // (BEV_EVENT_EOF | BEV_EVENT_ERROR)
   {
@@ -129,6 +148,10 @@ void  proxy_error_cb (struct bufferevent *b_ev, short events, void *arg)
     
     bufferevent_free (Client->server);
     bufferevent_free (Client->b_ev);
+
+#ifdef _DEBUG
+    printf ("connection closed");
+#endif // _DEBUG
 
     free (Client);
   }

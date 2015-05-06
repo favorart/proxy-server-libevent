@@ -64,6 +64,8 @@ struct client
   struct event_base      *base;
   //---------------------------
   struct bufferevent     *server;
+  //---------------------------
+  int flag_close;
 };
 //-----------------------------------------
 void  proxy_accept_cb (evutil_socket_t fd, short ev, void *arg);

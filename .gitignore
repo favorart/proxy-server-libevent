@@ -85,3 +85,4 @@ gcc_Debug.h
 MakeFile
 *.dat
 MakeFile
+proxy.vcxproj.user

@@ -129,8 +129,9 @@ int   server_config_init  (srv_conf *conf, char *path)
   //-----------------------
   for ( size_t i = 0U; i < count; ++i )
   {
-    if ( 0 >= sscanf (str, " %s:%hu%n",
-                       conf->remote_servers[i].ip,
+    uint16_t ip1, ip2, ip3, ip4;
+    if ( 0 >= sscanf ( str, " %hu.%hu.%hu.%hu:%hu,%n",
+                      &ip1, &ip2, &ip3, &ip4,
                       &conf->remote_servers[i].port,
                       &str_offset) )
     {
@@ -138,8 +139,9 @@ int   server_config_init  (srv_conf *conf, char *path)
       fail = true;
       goto CONF_FREE;
     }
-
-    printf ("%s:%hu\n", conf->remote_servers[i].ip, conf->remote_servers[i].port);
+    
+    sprintf (conf->remote_servers[i].ip, "%hu.%hu.%hu.%hu", ip1, ip2, ip3, ip4);
+    // printf ("%s : %hu\n", conf->remote_servers[i].ip, conf->remote_servers[i].port);
     str += str_offset;
   }
   
