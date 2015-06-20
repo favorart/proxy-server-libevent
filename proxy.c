@@ -87,8 +87,8 @@ void  proxy_accept_cb (evutil_socket_t fd, short ev, void *arg)
   bufferevent_enable (Client->b_ev,   EV_READ | EV_WRITE | EV_PERSIST);
   bufferevent_enable (Client->server, EV_READ | EV_WRITE | EV_PERSIST);
   //----------------------------------------------------------------------
-  bufferevent_setwatermark (Client->b_ev,   EV_WRITE, SRV_BUF_LOWMARK, 0);
-  bufferevent_setwatermark (Client->server, EV_WRITE, SRV_BUF_LOWMARK, 0);
+  // bufferevent_setwatermark (Client->b_ev,   EV_WRITE, SRV_BUF_LOWMARK, 0);
+  // bufferevent_setwatermark (Client->server, EV_WRITE, SRV_BUF_LOWMARK, 0);
 }
 //-----------------------------------------
 void  proxy_error_cb (struct bufferevent *b_ev, short events, void *arg)
@@ -133,7 +133,7 @@ void  proxy_error_cb (struct bufferevent *b_ev, short events, void *arg)
       bufferevent_free (Client->b_ev);
 
 #ifdef _DEBUG
-      printf ("connection closed");
+      printf ("connection closed\n");
 #endif // _DEBUG
 
       free (Client);
