@@ -126,6 +126,9 @@ void  proxy_error_cb (struct bufferevent *b_ev, short events, void *arg)
     printf ("Got a close. Length = %u\n", evbuffer_get_length (buf_out) );
 #endif // _DEBUG
 
+    int bev_fd = bufferevent_getfd (Client->b_ev);
+    shutdown (bev_fd, SHUT_WR);
+
     ++Client->flag_close;
     if ( Client->flag_close > 1 )
     {

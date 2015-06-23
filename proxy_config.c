@@ -16,6 +16,7 @@ const char*  strmyerror ()
     case SRV_ERR_LIBEV: strerr = "Incorrect libevent entity."; break;
     case SRV_ERR_RCMMN: strerr = "Incorrect request command."; break;
     case SRV_ERR_RFREE: strerr = "Dispatched a free request."; break;
+    case SRV_ERR_FCONF: strerr = "Config file isn't correct."; break;
   }
 
   my_errno = SRV_ERR_NONE;
@@ -121,7 +122,7 @@ int   server_config_init  (srv_conf *conf, char *path)
   const uint16_t  max_port = 65535U;
   if ( 1 != sscanf (fileline, "%hu,%n", &conf->port, &str_offset) || conf->port >= max_port )
   {
-    my_errno = SRV_ERR_INPUT;
+    my_errno = SRV_ERR_FCONF;
     fprintf (stderr, "%s\n", strmyerror ());
     conf->port = 8080;
   }
@@ -130,14 +131,19 @@ int   server_config_init  (srv_conf *conf, char *path)
   for ( size_t i = 0U; i < count; ++i )
   {
     uint16_t ip1, ip2, ip3, ip4;
-    if ( 0 >= sscanf ( str, " %hu.%hu.%hu.%hu:%hu,%n",
+    if ( 5 != sscanf ( str, "%hu.%hu.%hu.%hu:%hu,%n",
                       &ip1, &ip2, &ip3, &ip4,
                       &conf->remote_servers[i].port,
                       &str_offset) )
     {
-      fprintf (stderr, "%s\n", strerror (errno));
-      fail = true;
-      goto CONF_FREE;
+      my_errno = SRV_ERR_FCONF;
+      fprintf (stderr, "%s\n", strmyerror ());
+
+      conf->remote_servers_count = i;
+      break;
+      
+      // fail = true;
+      // goto CONF_FREE;
     }
     
     sprintf (conf->remote_servers[i].ip, "%hu.%hu.%hu.%hu", ip1, ip2, ip3, ip4);
