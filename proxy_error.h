@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 
 #ifndef _PROXY_ERROR_H_
 #define _PROXY_ERROR_H_
